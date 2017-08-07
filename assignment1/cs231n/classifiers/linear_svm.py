@@ -47,7 +47,7 @@ def svm_loss_naive(W, X, y, reg):
   dW /= num_train
   # Add regularization to the loss.
   loss += reg * np.sum(W * W)
-  dW += 2 * reg * np.sum(W * W)
+  dW += 2 * reg * W
   #############################################################################
   # TODO:                                                                     #
   # Compute the gradient of the loss function and store it dW.                #
@@ -70,6 +70,7 @@ def svm_loss_vectorized(W, X, y, reg):
   loss = 0.0
   dW = np.zeros(W.shape) # initialize the gradient as zero
   num_train = X.shape[0]
+
   #############################################################################
   # TODO:                                                                     #
   # Implement a vectorized version of the structured SVM loss, storing the    #
@@ -98,7 +99,14 @@ def svm_loss_vectorized(W, X, y, reg):
   # to reuse some of the intermediate values that you used to compute the     #
   # loss.                                                                     #
   #############################################################################
-  
+  aux = np.zeros(margin.shape)
+  aux[margin>0] = 1
+  aux[range(num_train),y] = 0
+  aux[range(num_train), y] = -np.sum(aux,axis=1)
+
+  dW = (X.T).dot(aux)
+  dW = dW/num_train + 2*reg*W
+
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
