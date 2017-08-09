@@ -2,6 +2,9 @@ import numpy as np
 from random import shuffle
 from past.builtins import xrange
 
+def sigmoid(X):
+  return 1/(1+np.exp(-X))
+
 def softmax_loss_naive(W, X, y, reg):
   """
   Softmax loss function, naive implementation (with loops)
@@ -23,18 +26,35 @@ def softmax_loss_naive(W, X, y, reg):
   # Initialize the loss and gradient to zero.
   loss = 0.0
   dW = np.zeros_like(W)
-
+  num_train = X.shape[0]
+  num_class = W.shape[1]
   #############################################################################
   # TODO: Compute the softmax loss and its gradient using explicit loops.     #
   # Store the loss in loss and the gradient in dW. If you are not careful     #
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+
+  for i in range(num_train):
+    score = X[i].dot(W)
+    # print(score)
+    for j in range(num_class):
+      logit = np.exp(score[j]) / np.sum(np.exp(score))
+      if j == y[i]:
+        loss += -np.log(logit)
+        dW[:,j] += (logit - 1)*X[i]
+      else:
+        dW[:,j] += logit*X[i]
+        # print(logit)
+
+
+
+  loss = loss/num_train + 0.5 * reg * np.sum(W*W)
+  dW = dW /num_train + reg*W
+  # pass
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
-
   return loss, dW
 
 
