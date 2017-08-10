@@ -76,6 +76,8 @@ def softmax_loss_vectorized(W, X, y, reg):
   # regularization!                                                           #
   #############################################################################
   score = X.dot(W)
+  stable = np.max(score)
+  score -= stable
   logit = np.exp(score)/np.sum(np.exp(score),axis=1).reshape(num_train,1)
   loss += -np.sum(np.log(logit[range(num_train),y]))
   logit[range(num_train),y] -= 1
