@@ -26,6 +26,7 @@ def affine_forward(x, w, b):
     # will need to reshape the input into rows.                               #
     ###########################################################################
     x_re = x.reshape(-1,w.shape[0])
+    # print(x_re.shape)
     out = x_re.dot(w)+b
     # pass
     ###########################################################################
