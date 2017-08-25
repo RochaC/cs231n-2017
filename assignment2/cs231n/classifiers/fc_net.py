@@ -247,9 +247,14 @@ class FullyConnectedNet(object):
 
         cache_z={}
         cache_hidden={}
+        if self.use_dropout:
+            cache_drop = {}
+
         layer_input=X
         for i in range(self.num_layers-1):
             z, cache_z[i] = affine_forward(layer_input, self.params["W%d" %(i+1)], self.params["b%d" %(i+1)])
+            if self.use_dropout:
+                z,cache_drop[i] = dropout_forward(z,self.dropout_param)
             layer_input, cache_hidden[i] = relu_forward(z)
             # print("hidden layer times: ",i+1)
         # print(layer_input)
@@ -294,6 +299,8 @@ class FullyConnectedNet(object):
         for i in reversed(range(1,self.num_layers)):
             # print(i)
             dlayer = relu_backward(dz,cache_hidden[i-1])
+            if self.use_dropout:
+                dlayer = dropout_backward(dlayer,cache_drop[i-1])
             dz,grads["W%d"%i],grads["b%d"%i] = affine_backward(dlayer,cache_z[i-1])
             grads["W%d" % i] += self.reg * self.params["W%d" % i]
         # print(grads["W%d"%i].shape)
