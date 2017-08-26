@@ -183,6 +183,9 @@ class FullyConnectedNet(object):
         for i in range(self.num_layers):
             self.params["W%d"%(i+1)] = weight_scale * np.random.normal(0, 1, (dims[i], dims[i+1]))
             self.params["b%d"%(i+1)] = np.zeros(dims[i+1])
+            if use_batchnorm and i<self.num_layers-1:
+                self.params["gamma%d"%(i+1)] = weight_scale * np.random.normal(0, 1, (1,dims[i+1]))
+                self.params["beta%d"%(i+1)] = np.zeros(dims[i+1])
 
         # for k,v in self.params.items():
         #     print(k,v.shape)
@@ -249,12 +252,16 @@ class FullyConnectedNet(object):
         cache_hidden={}
         if self.use_dropout:
             cache_drop = {}
-
+        if self.use_batchnorm:
+            cache_batch = {}
         layer_input=X
         for i in range(self.num_layers-1):
             z, cache_z[i] = affine_forward(layer_input, self.params["W%d" %(i+1)], self.params["b%d" %(i+1)])
             if self.use_dropout:
                 z,cache_drop[i] = dropout_forward(z,self.dropout_param)
+            if self.use_batchnorm:
+                z, cache_batch[i] = batchnorm_forward(z,self.params["gamma%d"%(i+1)],\
+                                                      self.params["beta%d"%(i+1)],self.bn_params[i])
             layer_input, cache_hidden[i] = relu_forward(z)
             # print("hidden layer times: ",i+1)
         # print(layer_input)
@@ -301,10 +308,10 @@ class FullyConnectedNet(object):
             dlayer = relu_backward(dz,cache_hidden[i-1])
             if self.use_dropout:
                 dlayer = dropout_backward(dlayer,cache_drop[i-1])
+            if self.use_batchnorm:
+                dlayer,grads["gamma%d"%i],grads["beta%d"%i] = batchnorm_backward(dlayer,cache_batch[i-1])
             dz,grads["W%d"%i],grads["b%d"%i] = affine_backward(dlayer,cache_z[i-1])
-            grads["W%d" % i] += self.reg * self.params["W%d" % i]
-        # print(grads["W%d"%i].shape)
-        # print(self.params["W%d"%i].shape)
+            grads["W%d"%i] += self.reg * self.params["W%d" % i]
         # pass
         ############################################################################
         #                             END OF YOUR CODE                             #

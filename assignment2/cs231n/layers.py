@@ -179,7 +179,14 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # variance, storing your result in the running_mean and running_var   #
         # variables.                                                          #
         #######################################################################
-        pass
+        sample_mean = x.mean(axis=0)
+        sample_var = x.var(axis=0)
+        x_bar = (x-sample_mean)/np.sqrt(sample_var+eps)
+        out = x_bar*gamma+beta
+        cache = (x, x_bar, sample_mean, sample_var, gamma, beta, eps)
+        running_mean = momentum * running_mean + (1 - momentum) * sample_mean
+        running_var = momentum * running_var + (1 - momentum) * sample_var
+        # pass
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
@@ -190,7 +197,9 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # then scale and shift the normalized data using gamma and beta.      #
         # Store the result in the out variable.                               #
         #######################################################################
-        pass
+        x_bar = (x - running_mean) / np.sqrt(running_var + eps)
+        out = x_bar*gamma+beta
+        # pass
         #######################################################################
         #                          END OF YOUR CODE                           #
         #######################################################################
@@ -226,7 +235,18 @@ def batchnorm_backward(dout, cache):
     # TODO: Implement the backward pass for batch normalization. Store the    #
     # results in the dx, dgamma, and dbeta variables.                         #
     ###########################################################################
-    pass
+    x,x_bar,mu,var,gamma,beta,eps = cache
+    m = x.shape[0]
+
+    dgamma = np.sum(dout*x_bar,axis=0)
+    dbeta = np.sum(dout,axis=0)
+    dx_bar = dout * gamma
+    dmu = dx_bar*(-1/np.sqrt(var+eps))
+    dmu = np.sum(dmu,axis=0)
+    dvar = dx_bar*(x-mu)*(-0.5*(var+eps)**(-1.5))
+    dvar = np.sum(dvar,axis=0)
+    dx = dx_bar*(1/np.sqrt(var+eps))+dvar*(2*(x-mu)/m)+dmu/m
+    # pass
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
