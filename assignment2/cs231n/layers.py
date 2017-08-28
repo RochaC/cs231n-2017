@@ -405,13 +405,11 @@ def conv_forward_naive(x, w, b, conv_param):
     _W = 1+(W+2*pad-WW)/stride
     out = np.zeros((N, F, _H, _W))
 
-    x_pad = np.pad(x, ((0,), (0,), (pad,), (pad,)), "constant", constant_values=0)  # pad for each channel
+    x_pad = np.pad(x, ((0,), (0,),(pad,),(pad,)), "constant", constant_values=0)  # pad for each channel
     for col in range(_H):
         for row in range(_W):
-            # print("col,row",col,row)
             X_pad_mask = x_pad[:,:,col*stride:col*stride+HH,row*stride:row*stride+WW]
             for f in range(F):
-                # print(X_pad_mask.shape,w[f].shape)
                 out[:,f,col,row] = np.sum(X_pad_mask*w[f],axis=(1,2,3))+b[f]
 
     # pass
@@ -439,7 +437,37 @@ def conv_backward_naive(dout, cache):
     ###########################################################################
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
-    pass
+    x,w,b,conv_param = cache
+    N = x.shape[0]
+    C = x.shape[1]
+    H = x.shape[2]
+    W = x.shape[3]
+    F = w.shape[0]
+    HH = w.shape[2]
+    WW = w.shape[3]
+    stride = conv_param["stride"]
+    pad = conv_param["pad"]
+    _H = 1+(H+2*pad-HH)/stride
+    _W = 1+(W+2*pad-WW)/stride
+    dw = np.zeros(w.shape)
+    dx = np.zeros(x.shape)
+    db = np.zeros(b.shape)
+
+    x_pad = np.pad(x, ((0,), (0,), (pad,), (pad,)), "constant", constant_values=0)  # pad for each channel
+    dx_pad = np.zeros(x_pad.shape)
+    for col in range(_H):
+        for row in range(_W):
+            # print(dout[:, 1, col, row].shape)
+            X_pad_mask = x_pad[:,:,col*stride:col*stride+HH,row*stride:row*stride+WW]
+            for f in range(F):
+                d_f = dout[:, f, col, row].reshape(N, 1, 1, 1)
+                dw[f,:,:,:] += np.sum(d_f*X_pad_mask,axis=0)
+            for n in range(N):
+                d_n = dout[n, :, col, row].reshape(F,1,1,1)
+                dx_pad[n,:,col*stride:col*stride+HH,row*stride:row*stride+WW] += np.sum(d_n*w,axis=0)
+            db += np.sum(dout[:,:,col,row],axis=0)
+    dx = dx_pad[:,:,pad:-pad,pad:-pad]
+    # pass
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
