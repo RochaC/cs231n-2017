@@ -493,7 +493,20 @@ def max_pool_forward_naive(x, pool_param):
     ###########################################################################
     # TODO: Implement the max pooling forward pass                            #
     ###########################################################################
-    pass
+    HH = pool_param["pool_height"]
+    WW = pool_param["pool_width"]
+    stride = pool_param["stride"]
+    N = x.shape[0]
+    C = x.shape[1]
+    H = x.shape[2]
+    W = x.shape[3]
+    _H = (H-HH)/stride+1
+    _W = (W-WW)/stride+1
+    out = np.zeros((N,C,_W,_H))
+    for col in range(_H):
+        for row in range(_W):
+            out[:,:,col,row]=np.max(x[:,:,col*stride:col*stride+HH,row*stride:row*stride+WW],axis=(2,3))
+    # pass
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -516,7 +529,22 @@ def max_pool_backward_naive(dout, cache):
     ###########################################################################
     # TODO: Implement the max pooling backward pass                           #
     ###########################################################################
-    pass
+    x,pool_param = cache
+    N,C,H,W = x.shape
+    HH,WW,stride = pool_param["pool_height"],pool_param["pool_width"],pool_param["stride"]
+    _H = (H-HH)/stride+1
+    _W = (W-WW)/stride+1
+    dx = np.zeros(x.shape)
+    out = np.zeros((N,C,_W,_H))
+    for col in range(_H):
+        for row in range(_W):
+            local = x[:, :, col * stride:col * stride + HH, row * stride:row * stride + WW]
+            # print(local.shape)
+            # print(dout[:,:,col,row].reshape(N,C,1,1))
+            ind = local == np.max(local, axis=(2, 3)).reshape(N, C, 1, 1)
+            # print(local*ind)
+            dx[:,:,col*stride:col*stride+HH,row*stride:row*stride+WW] += dout[:,:,col,row].reshape(N,C,1,1)*ind
+    # pass
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
