@@ -140,19 +140,19 @@ class CaptioningRNN(object):
         # affine transformation of image features
         features_affine = features.dot(W_proj)+b_proj
         # word embedding
-        embed,cache_embed = word_embedding_forward(captions_in,W_embed)
+        embed,cache_embed = word_embedding_forward(captions_in, W_embed)
         # rnn train
         if self.cell_type == "rnn":
-            h,cache_rnn = rnn_forward(embed,features_affine,Wx,Wh,b)
-            out,cache_tmp = temporal_affine_forward(h,W_vocab,b_vocab)
-            loss,dout = temporal_softmax_loss(out,captions_out,mask)
-            dtmp_x,grads["W_vocab"],grads["b_vocab"] = temporal_affine_backward(dout,cache_tmp)
-            dx_embed,dh0,grads["Wx"],grads["Wh"],grads["b"] = rnn_backward(dtmp_x,cache_rnn)
+            h,cache_rnn = rnn_forward(embed, features_affine,Wx, Wh, b)
+            out,cache_tmp = temporal_affine_forward(h, W_vocab, b_vocab)
+            loss,dout = temporal_softmax_loss(out, captions_out, mask)
+            dtmp_x,grads["W_vocab"],grads["b_vocab"] = temporal_affine_backward(dout, cache_tmp)
+            dx_embed,dh0,grads["Wx"],grads["Wh"], grads["b"] = rnn_backward(dtmp_x, cache_rnn)
             grads["W_proj"] = features.T.dot(dh0)
-            grads["b_proj"] = np.sum(dh0,axis=0)
+            grads["b_proj"] = np.sum(dh0, axis=0)
         else:
             pass
-        grads["W_embed"] = word_embedding_backward(dx_embed,cache_embed)
+        grads["W_embed"] = word_embedding_backward(dx_embed, cache_embed)
         # pass
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -215,7 +215,29 @@ class CaptioningRNN(object):
         # functions; you'll need to call rnn_step_forward or lstm_step_forward in #
         # a loop.                                                                 #
         ###########################################################################
-        pass
+        vocab_size = W_vocab.shape[1]
+
+        # affine transformation of image features
+        feature_affine = features.dot(W_proj) + b_proj
+
+        # word embedding
+        captions[:,0] = self._start
+        prev_h = feature_affine
+        for i in range(1,max_length):
+            embed, _ = word_embedding_forward(captions[:, i-1], W_embed)
+            if self.cell_type == "rnn":
+                next_h, _ = rnn_step_forward(embed, prev_h, Wx, Wh, b)
+
+            # softmax
+            score = next_h.dot(W_vocab)+b_vocab
+            probs = np.exp(score - np.max(score, axis=1, keepdims=True))
+            probs /= np.sum(probs, axis=1, keepdims=True)
+
+            # choose the words with max prob
+            word_idx= np.argmax(probs, axis=1)
+            captions[:,i] = word_idx
+            prev_h = next_h
+        # pass
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################

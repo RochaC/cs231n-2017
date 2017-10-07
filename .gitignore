@@ -99,3 +99,9 @@ ENV/
 
 # mypy
 .mypy_cache/
+.idea
+cifar-10-batches-py
+assignment3/cs231n/datasets
+mini-rnn.ipynb
+TensorFlow1.ipynb.html
+input.txt
