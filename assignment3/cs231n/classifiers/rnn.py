@@ -141,17 +141,21 @@ class CaptioningRNN(object):
         features_affine = features.dot(W_proj)+b_proj
         # word embedding
         embed,cache_embed = word_embedding_forward(captions_in, W_embed)
-        # rnn train
+        # rnn or lstm train
         if self.cell_type == "rnn":
             h,cache_rnn = rnn_forward(embed, features_affine,Wx, Wh, b)
-            out,cache_tmp = temporal_affine_forward(h, W_vocab, b_vocab)
-            loss,dout = temporal_softmax_loss(out, captions_out, mask)
-            dtmp_x,grads["W_vocab"],grads["b_vocab"] = temporal_affine_backward(dout, cache_tmp)
+        elif self.cell_type == "lstm":
+            h, cache_lstm = lstm_forward(embed, features_affine, Wx, Wh, b)
+        out,cache_tmp = temporal_affine_forward(h, W_vocab, b_vocab)
+        loss,dout = temporal_softmax_loss(out, captions_out, mask)
+        dtmp_x,grads["W_vocab"],grads["b_vocab"] = temporal_affine_backward(dout, cache_tmp)
+        # backforward
+        if self.cell_type == "rnn":
             dx_embed,dh0,grads["Wx"],grads["Wh"], grads["b"] = rnn_backward(dtmp_x, cache_rnn)
-            grads["W_proj"] = features.T.dot(dh0)
-            grads["b_proj"] = np.sum(dh0, axis=0)
-        else:
-            pass
+        elif self.cell_type == "lstm":
+            dx_embed, dh0, grads["Wx"],grads["Wh"], grads["b"] = lstm_backward(dtmp_x,cache_lstm)
+        grads["W_proj"] = features.T.dot(dh0)
+        grads["b_proj"] = np.sum(dh0, axis=0)
         grads["W_embed"] = word_embedding_backward(dx_embed, cache_embed)
         # pass
         ############################################################################
@@ -223,11 +227,16 @@ class CaptioningRNN(object):
         # word embedding
         captions[:,0] = self._start
         prev_h = feature_affine
+        prev_c = np.zeros_like(prev_h)
         for i in range(1,max_length):
             embed, _ = word_embedding_forward(captions[:, i-1], W_embed)
             if self.cell_type == "rnn":
                 next_h, _ = rnn_step_forward(embed, prev_h, Wx, Wh, b)
-
+                prev_h = next_h
+            if self.cell_type == "lstm":
+                next_h, next_c,  _ = lstm_step_forward(embed, prev_h, prev_c, Wx, Wh, b)
+                prev_h = next_h
+                prev_c = next_c
             # softmax
             score = next_h.dot(W_vocab)+b_vocab
             probs = np.exp(score - np.max(score, axis=1, keepdims=True))
@@ -236,7 +245,7 @@ class CaptioningRNN(object):
             # choose the words with max prob
             word_idx= np.argmax(probs, axis=1)
             captions[:,i] = word_idx
-            prev_h = next_h
+
         # pass
         ############################################################################
         #                             END OF YOUR CODE                             #
